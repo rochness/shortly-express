@@ -29,7 +29,7 @@ app.use(session({secret: '<mysecret>',
 
 app.get('/', 
 function(req, res) {
-  res.render('index');
+  res.render('login');
 });
 
 app.get('/create', 
@@ -42,6 +42,16 @@ function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
+});
+
+app.get('/signup',
+function(req, res) {
+  res.render('signup');
+});
+
+app.get('/login',
+function(req, res) {
+  res.render('login');
 });
 
 app.post('/links', 
@@ -79,15 +89,42 @@ function(req, res) {
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
-app.post('/',
+app.post('/signup',
 function(req, res) {
   var user = req.body.username;
-  var password = req.body.password;
-  util.checkUser(res, user, password, util.checkPassword, function(){
-    req.session.regenerate(function(){
-      req.session.user = user;
-      res.redirect('/');
-    });
+  var pw = req.body.password;
+  
+  new User({username: user}).fetch().then(function(found){
+    if (found) {
+      res.render('/signup');
+    } else {
+      Users.create({
+        username: user,
+        password: pw
+      }).then(function(newUser){
+        req.session.regenerate(function(){
+          req.session.user = user;
+          res.redirect('/');
+        });
+      });
+    }
+  });
+});
+
+app.post('/login',
+function(req, res) {
+  var user = req.body.username;
+  var pw = req.body.password;
+  
+  new User({username: user, password: pw}).fetch().then(function(found){
+    if (found) {
+      req.session.regenerate(function(){
+        req.session.user = user;
+        res.redirect('/');
+      });
+    } else {
+      res.redirect('/login');
+    }
   });
 });
 
