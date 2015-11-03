@@ -28,8 +28,16 @@ app.use(session({secret: '<mysecret>',
 
 
 app.get('/', 
+//if session has started
+  //render index
+//else
 function(req, res) {
-  res.render('login');
+  if(req.session.user){ //&& req.session.cookie._expires ! = ???
+    console.log('session: ', req.session);
+    res.render('index');
+  } else {
+    res.render('login');
+  }
 });
 
 app.get('/create', 
@@ -39,7 +47,10 @@ function(req, res) {
 
 app.get('/links', 
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
+  var userId = req.session.user_id;
+//only get links for that session
+  //req.session.user 
+  Links.reset().query('where', 'user_id', '=', 'userId').fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
@@ -57,6 +68,10 @@ function(req, res) {
 app.post('/links', 
 function(req, res) {
   var uri = req.body.url;
+  var username = req.session.user;
+  var userId = req.session.user_id;
+
+  console.log('req.session.user: ', req.session);
 
   if (!util.isValidUrl(uri)) {
     console.log('Not a valid url: ', uri);
@@ -76,7 +91,8 @@ function(req, res) {
         Links.create({
           url: uri,
           title: title,
-          base_url: req.headers.origin
+          base_url: req.headers.origin,
+          user_id: userId
         })
         .then(function(newLink) {
           res.send(200, newLink);
@@ -102,10 +118,10 @@ function(req, res) {
         username: user,
         password: pw
       }).then(function(newUser){
-        req.session.regenerate(function(){
+        // req.session.regenerate(function(){
           req.session.user = user;
-          res.redirect('/');
-        });
+          res.redirect('/'); //include session id info? 
+        // });
       });
     }
   });
@@ -118,10 +134,14 @@ function(req, res) {
   
   new User({username: user, password: pw}).fetch().then(function(found){
     if (found) {
-      req.session.regenerate(function(){
+      // req.session.regenerate(function(){
         req.session.user = user;
-        res.redirect('/');
-      });
+        req.session.user_id =  found.get('id');
+        console.log('the session', req.session);
+        res.redirect('/'); //include session
+        console.log('our res: ', res);
+
+      // });
     } else {
       res.redirect('/login');
     }
