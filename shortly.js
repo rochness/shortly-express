@@ -33,7 +33,7 @@ app.get('/',
 //else
 function(req, res) {
   if(req.session.user){ //&& req.session.cookie._expires ! = ???
-    console.log('session: ', req.session);
+    // console.log('session: ', req.session);
     res.render('index');
   } else {
     res.render('login');
@@ -48,9 +48,12 @@ function(req, res) {
 app.get('/links', 
 function(req, res) {
   var userId = req.session.user_id;
+  console.log('in links get request, userId: ', userId);
 //only get links for that session
   //req.session.user 
-  Links.reset().query('where', 'user_id', '=', 'userId').fetch().then(function(links) {
+  Links.query('where', 'user_id', '=', userId).fetch()
+  .then(function(links) {
+    console.log('in links get request, links.models: ', links.models);
     res.send(200, links.models);
   });
 });
@@ -70,8 +73,10 @@ function(req, res) {
   var uri = req.body.url;
   var username = req.session.user;
   var userId = req.session.user_id;
+  console.log('links post req.session: ', req.session);
+  console.log('links post user id: ', userId);
 
-  console.log('req.session.user: ', req.session);
+  // console.log('req.session.user: ', req.session);
 
   if (!util.isValidUrl(uri)) {
     console.log('Not a valid url: ', uri);
@@ -95,6 +100,8 @@ function(req, res) {
           user_id: userId
         })
         .then(function(newLink) {
+          console.log('new link: ', newLink);
+          // res.session.save();
           res.send(200, newLink);
         });
       });
@@ -137,9 +144,9 @@ function(req, res) {
       // req.session.regenerate(function(){
         req.session.user = user;
         req.session.user_id =  found.get('id');
-        console.log('the session', req.session);
+        // console.log('the session', req.session);
         res.redirect('/'); //include session
-        console.log('our res: ', res);
+        // console.log('our res: ', res);
 
       // });
     } else {
