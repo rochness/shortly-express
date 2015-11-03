@@ -2,7 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
-
+var session = require('express-session');
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -10,6 +10,7 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
+
 
 var app = express();
 
@@ -21,6 +22,9 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
+app.use(session({secret: '<mysecret>', 
+                 saveUninitialized: true,
+                 resave: true}));
 
 
 app.get('/', 
@@ -75,7 +79,17 @@ function(req, res) {
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
-
+app.post('/',
+function(req, res) {
+  var user = req.body.username;
+  var password = req.body.password;
+  util.checkUser(res, user, password, util.checkPassword, function(){
+    req.session.regenerate(function(){
+      req.session.user = user;
+      res.redirect('/');
+    });
+  });
+});
 
 
 /************************************************************/
