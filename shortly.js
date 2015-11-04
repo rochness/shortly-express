@@ -27,35 +27,28 @@ app.use(session({secret: '<mysecret>',
                  resave: true}));
 
 
-app.get('/', 
-//if session has started
-  //render index
-//else
-function(req, res) {
-  if(req.session.user){ //&& req.session.cookie._expires ! = ???
-    // console.log('session: ', req.session);
+app.get('/', util.checkUser, function(req, res) {
     res.render('index');
-  } else {
-    res.render('login');
-  }
 });
 
-app.get('/create', 
-function(req, res) {
+app.get('/create', util.checkUser, function(req, res) {
   res.render('index');
 });
 
-app.get('/links', 
-function(req, res) {
+app.get('/links', util.checkUser, function(req, res) {
   var userId = req.session.user_id;
   console.log('in links get request, userId: ', userId);
-//only get links for that session
-  //req.session.user 
-  Links.query('where', 'user_id', '=', userId).fetch()
-  .then(function(links) {
-    console.log('in links get request, links.models: ', links.models);
+
+  Links.reset().fetch().then(function(links){
     res.send(200, links.models);
   });
+  
+  // Links.query('where', 'user_id', '=', userId).fetch()
+  // .then(function(links) {
+  //   console.log('in links get request, links.models: ', links.models);
+  //   res.send(200, links.models);
+  // });
+
 });
 
 app.get('/signup',
@@ -66,6 +59,12 @@ function(req, res) {
 app.get('/login',
 function(req, res) {
   res.render('login');
+});
+
+app.get('/logout', function(req, res) {
+  req.session.destroy(function(){
+    res.redirect('/login');
+  });
 });
 
 app.post('/links', 
@@ -127,7 +126,7 @@ function(req, res) {
       }).then(function(newUser){
         // req.session.regenerate(function(){
           req.session.user = user;
-          res.redirect('/'); //include session id info? 
+          res.redirect('/login'); //include session id info? 
         // });
       });
     }
@@ -139,16 +138,11 @@ function(req, res) {
   var user = req.body.username;
   var pw = req.body.password;
   
-  new User({username: user, password: pw}).fetch().then(function(found){
-    if (found) {
-      // req.session.regenerate(function(){
-        req.session.user = user;
-        req.session.user_id =  found.get('id');
-        // console.log('the session', req.session);
-        res.redirect('/'); //include session
-        // console.log('our res: ', res);
-
-      // });
+  new User({username: user}).fetch().then(function(userModel){
+    if (userModel) {
+      userModel.comparePassword(pw, function(isMatched){
+        util.createSession(req, res, userModel);
+      });
     } else {
       res.redirect('/login');
     }

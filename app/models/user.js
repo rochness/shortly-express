@@ -10,15 +10,23 @@ var User = db.Model.extend({
     return this.hasMany(Link, 'link_id');
   },
 
-  initialize: function(loginDetails) {
-    this.on('creating', function(model, attrs, options) {
-      // var salt = bcrypt.genSaltSync(10);
-      // var hash = bcrypt.hashSync(loginDetails.password, salt);
-      model.set('password', loginDetails.password);
-      // model.set('salt', salt);
-      // model.set('hashedpw', hash);
-      model.set('username', loginDetails.username);
+  hashPassword: function(model, attrs, options){
+    var bcryptPromise = Promise.promisify(brcypt.hash);
+    
+    return bcryptPromise(model.attributes.password, null, null)
+          .then(function(hash){
+            model.set('password', hash);
+          }); 
+  },
+
+  compareHashPassword: function(password, cb){
+    bcrypt.compare(password, this.get('password'), function(err, isMatched){
+      cb(isMatched);
     });
+  },
+
+  initialize: function() {
+    this.on('creating', this.hashPassword);
   }
 });
 
